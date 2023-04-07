@@ -5,7 +5,7 @@
 
   <param name="robot_description" command="$(find xacro)/xacro.py $(arg model)" />
 
-  <include file="$(find puzzlebot_rviz)/launch/puzzlebot_sim.launch"/>
+  <!-- <include file="$(find puzzlebot_rviz)/launch/puzzlebot_sim.launch"/> -->
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
     <param name="odom_prefix" value="puzzlebot_sim1"/>

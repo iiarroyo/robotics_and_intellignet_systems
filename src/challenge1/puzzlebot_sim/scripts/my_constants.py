@@ -1,4 +1,6 @@
 #!/usr/bin/env python
 
-# TODO: put constants, like sampling time, here
+# put constants, like sampling time, here
 deltat = 50
+L = 1
+r = 1

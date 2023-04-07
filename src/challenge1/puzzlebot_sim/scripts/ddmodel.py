@@ -2,10 +2,8 @@
 
 import rospy
 import numpy as np
-from std_msgs.msg import String
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
-import my_constants as my_constants
 from geometry_msgs.msg import PoseStamped
 from tf.transformations import euler_from_quaternion
 
@@ -17,6 +15,8 @@ w(omega): angular velocity in z
 theta: current heading
 x, y: position in x and y, respectively
 """
+
+
 class DifferentialDriveModel():
     def __init__(self):
         rospy.on_shutdown(self.cleanup)
@@ -29,7 +29,7 @@ class DifferentialDriveModel():
         rospy.Subscriber(
             "cmd_vel", Twist, self.cmd_listener)
         rospy.Subscriber(
-            "theta", PoseStamped, self.theta_listener)
+            "pose", PoseStamped, self.theta_listener)
         rate = rospy.Rate(50)
         self.v = 0
         self.w = 0
@@ -40,9 +40,9 @@ class DifferentialDriveModel():
             rate.sleep()
 
     def calc(self, v, w):
-        self.xdot = self.v * np.cos(self.theta)
-        self.ydot = self.v * np.sin(self.theta)
-        self.thetadot = self.w
+        self.xdot = v * np.cos(self.theta)
+        self.ydot = v * np.sin(self.theta)
+        self.thetadot = w
 
         self.xdot_pub.publish(self.xdot)
         self.ydot_pub.publish(self.ydot)
@@ -51,8 +51,15 @@ class DifferentialDriveModel():
     def cmd_listener(self, cmd_msg):
         self.v = cmd_msg.linear.x
         self.w = cmd_msg.angular.z
+        # self.calc(self.v, self.w)
+
     def theta_listener(self, msg):
-        _, _, self.theta = euler_from_quaternion(msg.pose.orientation)
+        orientation = msg.pose.orientation
+        _, _, self.theta = euler_from_quaternion(
+            [orientation.x,
+             orientation.y,
+             orientation.z,
+             orientation.w])
 
     def cleanup(self):
         print("Stopping {}".format(rospy.get_name()))
