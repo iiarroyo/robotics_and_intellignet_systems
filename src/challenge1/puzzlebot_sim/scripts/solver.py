@@ -48,7 +48,7 @@ class EqSolver():
         msg.pose.position.y = self.y
         msg.pose.orientation = Quaternion(
             *quaternion_from_euler(0, 0, self.theta))
-        msg.header.frame_id = "base_link"
+        msg.header.frame_id = "chassis"
         msg.header.seq = next(count)
         msg.header.stamp = rospy.get_rostime()
         self.pose_pub.publish(msg)

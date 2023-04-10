@@ -35,7 +35,7 @@ class CoordinateTransform():
         br.sendTransform(translation=(p.x, p.y, p.z),
                          rotation=(o.x, o.y, o.z, o.w),
                          time=msg.header.stamp,
-                         child="base_link",
+                         child="chassis",
                          parent="/world")
 
     def pose_listener(self, msg):

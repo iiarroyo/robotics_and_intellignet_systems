@@ -4,11 +4,11 @@
 
 <!-- files for gazebo costumization -->
 
-<xacro:include filename="$(find puzzlebot_rviz)/urdf/parameters.xacro" />
-<xacro:include filename="$(find puzzlebot_rviz)/urdf/macros.xacro" />
+<xacro:include filename="$(find puzzlebot_rviz_ch1)/urdf/parameters.xacro" />
+<xacro:include filename="$(find puzzlebot_rviz_ch1)/urdf/macros.xacro" />
 
-<xacro:include filename="$(find puzzlebot_rviz)/urdf/puzzlebot.gazebo" />
-<xacro:include filename="$(find puzzlebot_rviz)/urdf/materials.xacro" />
+<xacro:include filename="$(find puzzlebot_rviz_ch1)/urdf/puzzlebot.gazebo" />
+<xacro:include filename="$(find puzzlebot_rviz_ch1)/urdf/materials.xacro" />
 
 
 <!-- Dummy link needed to load the model properly-->
@@ -19,7 +19,8 @@
   <link name="chassis">
     <pose>0 0 0 0 0 0</pose>
     <visual>
-      <origin xyz="0 0 0" rpy="${PI/2} 0 ${PI/2}"/>        
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- <origin xyz="0 0 0" rpy="${PI/2} 0 ${PI/2}"/>         -->
           <geometry>
           	  <mesh filename="file://${mesh_chassis}"/> 
           </geometry> 

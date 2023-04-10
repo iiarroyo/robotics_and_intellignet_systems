@@ -12,6 +12,7 @@
   <node name="solver" pkg="puzzlebot_sim" type="solver.py" output="screen"/>
   <node name="transform" pkg="puzzlebot_sim" type="transform.py" output="screen"/>
   <node name="coord_transform" pkg="puzzlebot_sim" type="coord_transform.py" output="screen"/>
+  <include file="$(find puzzlebot_rviz_ch1)/launch/puzzlebot_joints.launch"/>
 
 
 

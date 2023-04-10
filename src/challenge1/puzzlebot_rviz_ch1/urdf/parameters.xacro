@@ -25,8 +25,8 @@
 <xacro:property name="cameraZ" value="0.06"/>
 
 
-<xacro:property name="mesh_chassis"  value="$(find puzzlebot_rviz)/meshes/chassis.stl" />
-<xacro:property name="mesh_wheel"  value="$(find puzzlebot_rviz)/meshes/wheel.stl" />
-<xacro:property name="mesh_camera"  value="$(find puzzlebot_rviz)/meshes/camera.stl" />
+<xacro:property name="mesh_chassis"  value="$(find puzzlebot_rviz_ch1)/stl_files/MCR2_1000_0_Puzzlebot.stl" />
+<!-- <xacro:property name="mesh_wheel"  value="$(find puzzlebot_rviz_ch1)/meshes/wheel.stl" />
+<xacro:property name="mesh_camera"  value="$(find puzzlebot_rviz_ch1)/meshes/camera.stl" /> -->
 
 </robot>
