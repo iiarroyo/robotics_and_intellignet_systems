@@ -21,20 +21,22 @@ class EqSolver():
         rospy.Subscriber(
             "cmd_vel", Twist, self.cmd_listener)
         rate = rospy.Rate(constants.deltat)
+        self.v = 0.0
+        self.w = 0.0
 
         while not rospy.is_shutdown():
+            self.calc_ws(self.v, self.w)
             rate.sleep()
 
     def calc_ws(self, v, w):
-        wl = (v/constants.r) - (w*constants.L)/(2*constants.r)
-        wr = (v/constants.r) + (w*constants.L)/(2*constants.r)
+        wl = (2*v - w*constants.L)/(2*constants.r)
+        wr = (2*v + w*constants.L)/(2*constants.r)
         self.wl_pub.publish(wl)
         self.wr_pub.publish(wr)
 
     def cmd_listener(self, cmd_msg):
-        v = cmd_msg.linear.x
-        w = cmd_msg.angular.z
-        self.calc_ws(v, w)
+        self.v = cmd_msg.linear.x
+        self.w = cmd_msg.angular.z
 
     def cleanup(self):
         print("Stopping {}".format(rospy.get_name()))
