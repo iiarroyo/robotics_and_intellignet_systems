@@ -1,5 +1,6 @@
 #!/usr/bin/env python  
 import rospy  
+from nav_msgs.msg import Odometry 
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32 
 from visualization_msgs.msg import Marker 
@@ -12,7 +13,7 @@ import my_constants as constants
 
 class PuzzlebotTfClass():  
     def __init__(self):  
-        rospy.Subscriber("pose_sim", PoseStamped, self.pose_sim_cb) 
+        rospy.Subscriber("odom", Odometry, self.pose_sim_cb) 
         rospy.Subscriber("wl", Float32, self.wl_cb)
         rospy.Subscriber("wr", Float32, self.wr_cb)
         self.marker_pub = rospy.Publisher("puzzlebot_marker", Marker, queue_size = 1) 
@@ -31,14 +32,21 @@ class PuzzlebotTfClass():
             self.send_right_wheel_tf(self.rot_R)
             rate.sleep() 
 
+    def odom2pose(self, odom=Odometry()):
+        pose = PoseStamped()
+        pose.header.frame_id = odom.header.frame_id
+        pose.header.stamp = odom.header.stamp
+        pose.pose = odom.pose.pose
+        return pose
+
     def get_wheels_rot(self):
         wr = self.wr
         wl = self.wl
         self.rot_R = self.rot_R + wr * constants.deltat 
         self.rot_L = self.rot_L + wl * constants.deltat 
     
-    def pose_sim_cb(self, msg): 
-        self.robot_pose = msg 
+    def pose_sim_cb(self, msg):
+        self.robot_pose = self.odom2pose(msg)
  
     def send_base_link_tf(self, pose_stamped=PoseStamped()): 
         # This receives the robot's pose and broadcast a transformation. 
@@ -107,7 +115,7 @@ class PuzzlebotTfClass():
         # Send the transformation 
         self.tf_br.sendTransform(t) 
      
-    def fill_marker(self, pose_stamped=PoseStamped()): 
+    def fill_marker(self, pose_stamped=PoseStamped()):
         marker = Marker() 
         marker.header.frame_id = "chassis" 
         marker.header.stamp = rospy.Time.now() 

@@ -1,129 +1,136 @@
-#!/usr/bin/env python
-
-import rospy
-import tf2_ros 
+#!/usr/bin/env python  
+import rospy  
 import numpy as np
-from std_msgs.msg import String
-import my_constants as constants
-from std_msgs.msg import Float32
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Quaternion
-from tf.transformations import quaternion_from_euler
+from std_msgs.msg import Float32 
+from nav_msgs.msg import Odometry 
 from deadreckoning import DeadReckoning
-
-import itertools
-count = itertools.count()
+from geometry_msgs.msg import PoseStamped 
+from tf.transformations import quaternion_from_euler
+import my_constants as constants
 
 np.set_printoptions(suppress=True) 
 np.set_printoptions(formatter={'float': '{: 0.4f}'.format}) 
-class Localization():
-    def __init__(self):
-        rospy.on_shutdown(self.cleanup)
-        rate = rospy.Rate(constants.node_freq)
-        rospy.Subscriber(
-            "wl", Float32, self.wl_listener)
-        rospy.Subscriber(
-            "wr", Float32, self.wr_listener)
-        self.odom_pub = rospy.Publisher(
-            "odom", Odometry, queue_size=10)
-        self.br = tf2_ros.TransformBroadcaster()
-        self.xdot = 0
-        self.ydot = 0
-        self.thetadot = 0
-        self.theta = 0
-        self.w = 0
-        self.wl = 0
-        self.wr = 0
-        self.robot_odom = Odometry()
-        self.dreckoning = DeadReckoning()
-        self.miu = np.zeros((3, 1))
-        self.E = np.zeros((3, 3)) # sigma
-        self.E[0, 0] = 1.0
-        self.E[1, 1] = 5.0
-        self.E[2, 2] = 1.0
-        self.Q = np.array([[0.5, 0.01, 0.01],
-                           [0.01, 0.5, 0.01],
-                           [0.01, 0.01, 0.2]])
+
+
+class LocalizationClass():
+
+    def __init__(self):  
+        self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1) 
+        rospy.Subscriber("wl", Float32, self.wl_cb ) 
+        rospy.Subscriber("wr", Float32, self.wr_cb ) 
+        odom = Odometry()
+        #Robot constants  
+        r=0.05 #[m] radius of the wheels 
+        L=0.18 #[m] distance between wheels 
+        #Robot state 
+        self.wl = 0.0 #Robot left wheel angular speed 
+        self.wr = 0.0 #Robot right wheel angular speed 
+        x = 0.0 #Robot x-axis postion 
+        y = 0.0 #Robot position 
+        theta = 0.0 # Robot orientation 
+        dt = 0.0 #time interval  
+        v=0.0 #[m/s] Robot linear speed 
+        w=0.0 #[rad/s] Robot angular speed 
         while rospy.get_time() == 0: 
-            rospy.loginfo("No simulated time has been received yet")
-        while not rospy.is_shutdown():
-            self.calc_vels()
-            self.calc_pose()
-            self.calc_covariance()
-            self.publish_odom()
-            rate.sleep()
+            print("no simulated time has been received yet") 
+        print("Got time") 
+        last_time = rospy.get_time() 
+        self.received_wl = 0 
+        self.received_wr = 0 
+        rate = rospy.Rate(constants.node_freq) 
+        Sigma_pose = np.zeros([3,3]) #Creates the Covariance matrix (3x3) for x, y and theta 
+        d = DeadReckoning()
+        while not rospy.is_shutdown(): 
+            if self.received_wl and self.received_wr: 
+                #Define the sampling time  
+                current_time = rospy.get_time() 
+                dt = current_time-last_time 
+                #Get a copy of wr an wl to get unexpected changes 
+                wr = self.wr 
+                wl = self.wl 
+                #Compute the robot linear and angular speeds.  
+                v = r*(wr+wl)/2.0 #Robot's linear speed 
+                w = r*(wr-wl)/L #Robot's Angular Speed 
+                # Calculate Covariance Matrix Sigma 
+                # Sigma_pose[0,0] = 1.0 #cov(xx) 
+                # Sigma_pose[0,1] = 0.0  #cov(xy) 
+                # Sigma_pose[0,2] = 0.0  #cov(x, theta) 
+                # Sigma_pose[1,0] = 0.0  #cov(y,x) 
+                # Sigma_pose[1,1] = 5.0  #cov(y,y) 
+                # Sigma_pose[1,2] = 0.0  #cov(y,theta) 
+                # Sigma_pose[2,0] = 0.0  #cov(theta,x) 
+                # Sigma_pose[2,1] = 0.0  #cov(theta,y) 
+                # Sigma_pose[2,2] = 1.0 #cov(thetat,theta)
+                Q = np.array([[0.5, 0.01, 0.01],
+                  [0.01, 0.5, 0.01],
+                  [0.01, 0.01, 0.2]])
+                _, Sigma_pose, _ = d.calc_vals(
+                    miu=[x, y, theta],
+                    E=Sigma_pose,
+                    v=v,
+                    w=w,
+                    Q=Q,
+                    dt=dt,
+                    wl=wl,
+                    wr=wr)
+                #Pose estimation (x,y,theta) 
+                x=x+v*np.cos(theta)*dt 
+                y=y+v*np.sin(theta)*dt 
+                theta = theta + w*dt 
+                #Crop theta from -pi to pi 
+                theta = np.arctan2(np.sin(theta), np.cos(theta)) # Make theta from -pi to pi 
+                #last_time =  current_time 
+                last_time = current_time 
+                odom = self.fill_odom(x, y, theta, Sigma_pose, v, w) 
+                self.odom_pub.publish(odom) 
+                rate.sleep()
 
-    def calc_vels(self):
-        """
-        Calculate v and w(omega)
-        """
-        wl = self.wl # prevent changes in interruption
-        wr = self.wr
-        v = constants.r*(wr + wl)/2
-        w = constants.r*(wr - wl)/constants.L
+    def wl_cb(self, msg): 
+        self.wl = msg.data 
+        self.received_wl = 1
 
-        self.xdot = v*np.sin(self.theta)
-        self.ydot = v*np.sin(self.theta)
-        self.thetadot = w
-        self.robot_odom.twist.twist.linear.x = v
-        self.robot_odom.twist.twist.angular.z = w
+    def wr_cb(self, msg): 
+        self.wr = msg.data 
+        self.received_wr = 1
 
-    def calc_pose(self):
-        """
-        
-        """ 
-        self.robot_odom.pose.pose.position.x += self.xdot * constants.deltat
-        self.robot_odom.pose.pose.position.y += self.ydot * constants.deltat
-        self.robot_odom.pose.pose.position.z = constants.r
+    # def calc_sigma(self):
+    #     d = DeadReckoning()
+    #     d.calc_vals(miu)
 
-        self.theta += self.thetadot * constants.deltat
-        self.theta = np.arctan2(np.sin(self.theta), np.cos(self.theta))
-        self.robot_odom.pose.pose.orientation = Quaternion(
-            *quaternion_from_euler(0, 0, self.theta))
-        
-        
-    def calc_covariance(self):
-        """
-        TODO: refactor to for loop
-        """
-        self.robot_odom.pose.covariance[0] = self.E[0, 0]
-        self.robot_odom.pose.covariance[1] = self.E[0, 1]
-        self.robot_odom.pose.covariance[5] = self.E[0, 2]
-        self.robot_odom.pose.covariance[6] = self.E[1, 0]
-        self.robot_odom.pose.covariance[7] = self.E[1, 1]
-        self.robot_odom.pose.covariance[11] = self.E[1, 2]
-        self.robot_odom.pose.covariance[30] = self.E[2, 0]
-        self.robot_odom.pose.covariance[31] = self.E[2, 1]
-        self.robot_odom.pose.covariance[35] = self.E[2, 2]
-        rospy.loginfo(self.robot_odom.pose.covariance)
-        # def calc_vals(self, miu, E, v, w, Q):
-        self.miu, self.E, self.H = self.dreckoning.calc_vals(
-            miu=self.miu,
-            E=self.E,
-            v=self.robot_odom.twist.twist.linear.x,
-            w=self.robot_odom.twist.twist.angular.z,
-            Q=self.Q)
-        
-    def publish_odom(self):
-        self.robot_odom.header.stamp = rospy.Time.now()
-        self.robot_odom.header.frame_id = "odom"
-        self.robot_odom.child_frame_id = "base_link"
-        self.robot_odom.header.seq = next(count)
-        self.odom_pub.publish(self.robot_odom)
+    def fill_odom(self,x, y, theta, Sigma_pose, v, w): 
+        # (x,y) -> robot position 
+        # theta -> robot orientation 
+        # Sigma_pose -> 3x3 pose covariance matrix 
+        odom=Odometry() 
+        odom.header.stamp =rospy.Time.now() 
+        odom.header.frame_id = "odom" 
+        odom.child_frame_id = "base_link" 
+        odom.pose.pose.position.x = x 
+        odom.pose.pose.position.y = y 
+        odom.pose.pose.position.z = 0.0 
+        quat=quaternion_from_euler(0.0, 0.0, theta) 
+        odom.pose.pose.orientation.x = quat[0] 
+        odom.pose.pose.orientation.y = quat[1] 
+        odom.pose.pose.orientation.z = quat[2] 
+        odom.pose.pose.orientation.w = quat[3] 
+        odom.pose.covariance = [0.0]*36 
+        # Fill the covariance matrix 
+        odom.pose.covariance[0] = Sigma_pose[0,0] 
+        odom.pose.covariance[1] = Sigma_pose[0,1] 
+        odom.pose.covariance[5] = Sigma_pose[0,2] 
+        odom.pose.covariance[6] = Sigma_pose[1,0] 
+        odom.pose.covariance[7] = Sigma_pose[1,1] 
+        odom.pose.covariance[11] = Sigma_pose[1,2] 
+        odom.pose.covariance[30] = Sigma_pose[2,0] 
+        odom.pose.covariance[31] = Sigma_pose[2,1] 
+        odom.pose.covariance[35] = Sigma_pose[2,2] 
+        odom.twist.twist.linear.x = v 
+        odom.twist.twist.angular.z = w 
+        return odom 
+    
 
-    def wl_listener(self, msg):
-        self.wl = msg.data
-
-    def wr_listener(self, msg):
-        self.wr = msg.data
-
-    def cleanup(self):
-        print("Stopping {}".format(rospy.get_name()))
-        # exit()
-
-
-if __name__ == "__main__":
-    rospy.init_node('localization')
-    Localization()
+############################### MAIN PROGRAM ####################################  
+if __name__ == "__main__":  
+    # first thing, init a node! 
+    rospy.init_node('localization')  
+    LocalizationClass()  
