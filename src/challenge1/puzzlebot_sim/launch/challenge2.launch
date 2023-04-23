@@ -11,7 +11,7 @@
   <!-- <node name="ddmodel" pkg="puzzlebot_sim" type="ddmodel.py" output="screen"/>
   <node name="solver" pkg="puzzlebot_sim" type="solver.py" output="screen"/> -->
   <node name="transform" pkg="puzzlebot_sim" type="transform.py" output="screen"/>
-  <node name="localization" pkg="puzzlebot_sim" type="localization.py" output="screen"/>
+  <node name="localization_arturo" pkg="puzzlebot_sim" type="localization_arturo.py" output="screen"/>  
   <!-- <node name="coord_transform" pkg="puzzlebot_sim" type="coord_transform.py" output="screen"/> -->
   <include file="$(find puzzlebot_rviz_ch1)/launch/puzzlebot_joints.launch"/>
 

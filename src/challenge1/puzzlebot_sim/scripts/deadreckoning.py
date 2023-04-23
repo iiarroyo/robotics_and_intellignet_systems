@@ -11,8 +11,16 @@ class DeadReckoning():
     def __init__(self):
         pass
 
-    def calc_vals(self, miu, E, v, w, Q):
-        dt = 0.1
+    def calc_vals(self, miu, E, v, w, Q, dt, wr, wl):
+        kr = 0.8
+        kl = 0.8
+        wheel_cov = np.array([[kr*abs(wr), 0],
+                              [0, kl*abs(wl)]])
+        nabla_w = (0.5)*constants.r*dt*np.array([[np.cos(miu[2]), np.cos(miu[2])],
+                                                 [np.sin(miu[2]), np.sin(miu[2])],
+                                                 [2/constants.L, -2/constants.L]])
+        
+        Q = nabla_w.dot(wheel_cov).dot(nabla_w.T)
         H = np.array([[1, 0, -dt*v*np.sin(miu[2])],
                       [0, 1, dt*v*np.cos(miu[2])],
                       [0, 0, 1]])
@@ -27,25 +35,20 @@ class DeadReckoning():
 
 if __name__ == "__main__":
     a = DeadReckoning()
-    miu = np.zeros((3, 1))
+    miu = np.array([[0.0],
+                    [1.0],
+                    [10.0]])
     E = np.zeros((3, 3))
-    Q = np.array([[0.5, 0.01, 0.01],
-                  [0.01, 0.5, 0.01],
-                  [0.01, 0.01, 0.2]])
+    # Q = np.array([[0.5, 0.01, 0.01],
+    #               [0.01, 0.5, 0.01],
+    #               [0.01, 0.01, 0.2]])
+    Q = np.array([[0.05, 0.001, 0.001],
+                  [0.001, 0.05, 0.001],
+                  [0.001, 0.001, 0.02]])
     v = 1
     w = 1
     dt = 0.1
 
-    print("miu_0:\n{}".format(miu))
-    print("E_0:\n{}".format(E))
-    # print("AAAAAAAAAAAAAAAA{}".format(np.float(E[0][0])))
-    miu, E, H = a.calc_vals(miu, E, v, w, Q)
-    print("miu_1:\n{}".format(miu))
-    print("E_1:\n{}".format(E))
-    print("H_1:\n{}".format(H))
-    a.calc_vals(miu, E, v, w, Q)
-    print("miu_2:\n{}".format(miu))
-    print("E_2:\n{}".format(E))
-    print("H_2:\n{}".format(H))
+    a.calc_vals(miu, E, v, w, Q, dt, wr=1, wl=1)
 
 

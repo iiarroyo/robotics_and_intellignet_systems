@@ -37,12 +37,21 @@ class Localization():
         self.wl = 0
         self.wr = 0
         self.robot_odom = Odometry()
-        # self.E = np.
+        self.dreckoning = DeadReckoning()
+        self.miu = np.zeros((3, 1))
+        self.E = np.zeros((3, 3)) # sigma
+        self.E[0, 0] = 1.0
+        self.E[1, 1] = 5.0
+        self.E[2, 2] = 1.0
+        self.Q = np.array([[0.5, 0.01, 0.01],
+                           [0.01, 0.5, 0.01],
+                           [0.01, 0.01, 0.2]])
         while rospy.get_time() == 0: 
             rospy.loginfo("No simulated time has been received yet")
         while not rospy.is_shutdown():
             self.calc_vels()
             self.calc_pose()
+            self.calc_covariance()
             self.publish_odom()
             rate.sleep()
 
@@ -75,7 +84,27 @@ class Localization():
             *quaternion_from_euler(0, 0, self.theta))
         
         
-        
+    def calc_covariance(self):
+        """
+        TODO: refactor to for loop
+        """
+        self.robot_odom.pose.covariance[0] = self.E[0, 0]
+        self.robot_odom.pose.covariance[1] = self.E[0, 1]
+        self.robot_odom.pose.covariance[5] = self.E[0, 2]
+        self.robot_odom.pose.covariance[6] = self.E[1, 0]
+        self.robot_odom.pose.covariance[7] = self.E[1, 1]
+        self.robot_odom.pose.covariance[11] = self.E[1, 2]
+        self.robot_odom.pose.covariance[30] = self.E[2, 0]
+        self.robot_odom.pose.covariance[31] = self.E[2, 1]
+        self.robot_odom.pose.covariance[35] = self.E[2, 2]
+        rospy.loginfo(self.robot_odom.pose.covariance)
+        # def calc_vals(self, miu, E, v, w, Q):
+        self.miu, self.E, self.H = self.dreckoning.calc_vals(
+            miu=self.miu,
+            E=self.E,
+            v=self.robot_odom.twist.twist.linear.x,
+            w=self.robot_odom.twist.twist.angular.z,
+            Q=self.Q)
         
     def publish_odom(self):
         self.robot_odom.header.stamp = rospy.Time.now()
