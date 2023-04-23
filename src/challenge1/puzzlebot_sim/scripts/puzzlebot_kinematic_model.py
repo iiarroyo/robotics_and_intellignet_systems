@@ -1,4 +1,4 @@
-#!/usr/bin/env python3  
+#!/usr/bin/env python
 import rospy  
 import numpy as np 
 from tf.transformations import quaternion_from_euler 
@@ -65,7 +65,7 @@ class PuzzlebotKinClass():
         wl = ( (2*self.v - self.L*self.w) / self.r ) / 2
         wr = 2*self.v / self.r - wl 
         w_vel = [wl, wr]
-        rospy.loginfo(f"get_wheel_speeds: {w_vel}") 
+        rospy.loginfo("get_wheel_speeds: {}".format(w_vel)) 
         return w_vel
 
     def get_pose_stamped(self, x, y, yaw): 
@@ -97,7 +97,7 @@ class PuzzlebotKinClass():
         self.theta = self.theta + self.w * self.delta_t
         pose = [self.x, self.y, self.theta] 
         
-        rospy.logwarn(f"set_robot_pose: {pose}") 
+        rospy.logwarn("set_robot_pose: {}".format(pose)) 
         return pose
  
     def fill_marker(self, pose_stamped=PoseStamped()): 

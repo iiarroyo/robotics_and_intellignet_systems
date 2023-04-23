@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # put constants, like sampling time, here
-node_freq = 50
-deltat = 1/node_freq
+node_freq = 50.0
+deltat = 1.0/node_freq
 L = 0.18
 r = 0.05
