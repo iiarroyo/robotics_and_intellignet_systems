@@ -6,6 +6,7 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
 from tf.transformations import euler_from_quaternion
+import my_constants as constants
 
 """
 Variables
@@ -30,7 +31,7 @@ class DifferentialDriveModel():
             "cmd_vel", Twist, self.cmd_listener)
         rospy.Subscriber(
             "pose", PoseStamped, self.theta_listener)
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(constants.node_freq)
         self.v = 0
         self.w = 0
         self.theta = 0

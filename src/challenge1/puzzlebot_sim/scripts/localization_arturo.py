@@ -6,7 +6,7 @@ from nav_msgs.msg import Odometry
 from deadreckoning import DeadReckoning
 from geometry_msgs.msg import PoseStamped 
 from tf.transformations import quaternion_from_euler
-
+import my_constants as constants
 
 np.set_printoptions(suppress=True) 
 np.set_printoptions(formatter={'float': '{: 0.4f}'.format}) 
@@ -18,7 +18,7 @@ class LocalizationClass():
         self.odom_pub = rospy.Publisher("odom", Odometry, queue_size=1) 
         rospy.Subscriber("wl", Float32, self.wl_cb ) 
         rospy.Subscriber("wr", Float32, self.wr_cb ) 
-        odom = Odometry() 
+        odom = Odometry()
         #Robot constants  
         r=0.05 #[m] radius of the wheels 
         L=0.18 #[m] distance between wheels 
@@ -37,7 +37,7 @@ class LocalizationClass():
         last_time = rospy.get_time() 
         self.received_wl = 0 
         self.received_wr = 0 
-        rate = rospy.Rate(20) # The rate of the while loop 
+        rate = rospy.Rate(constants.node_freq) 
         Sigma_pose = np.zeros([3,3]) #Creates the Covariance matrix (3x3) for x, y and theta 
         d = DeadReckoning()
         while not rospy.is_shutdown(): 
@@ -78,10 +78,10 @@ class LocalizationClass():
                 y=y+v*np.sin(theta)*dt 
                 theta = theta + w*dt 
                 #Crop theta from -pi to pi 
-                theta =np.arctan2(np.sin(theta), np.cos(theta)) #Make theta from -pi to pi 
+                theta = np.arctan2(np.sin(theta), np.cos(theta)) # Make theta from -pi to pi 
                 #last_time =  current_time 
                 last_time = current_time 
-                odom = self.fill_odom(x, y,theta, Sigma_pose, v, w) 
+                odom = self.fill_odom(x, y, theta, Sigma_pose, v, w) 
                 self.odom_pub.publish(odom) 
                 rate.sleep()
 

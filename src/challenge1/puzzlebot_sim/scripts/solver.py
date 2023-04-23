@@ -34,7 +34,7 @@ class EqSolver():
             "wl", Float32, self.wl_listener)
         rospy.Subscriber(
             "wr", Float32, self.wr_listener)
-        rate = rospy.Rate(constants.deltat)
+        rate = rospy.Rate(constants.node_freq)
         self.br = tf.TransformBroadcaster()
         self.x = 0
         self.y = 0
@@ -51,11 +51,11 @@ class EqSolver():
             rate.sleep()
 
     def get_poses(self, xdot, ydot, thetadot, wl, wr):
-        self.x += constants.deltat**-1 * xdot
-        self.y += constants.deltat**-1 * ydot
-        self.theta += constants.deltat**-1 * thetadot
-        self.thetal += constants.deltat**-1 * wl
-        self.thetar += constants.deltat**-1 * wr
+        self.x += constants.deltat * xdot
+        self.y += constants.deltat * ydot
+        self.theta += constants.deltat * thetadot
+        self.thetal += constants.deltat * wl
+        self.thetar += constants.deltat * wr
 
 
         msg = PoseStamped()

@@ -21,7 +21,7 @@ np.set_printoptions(formatter={'float': '{: 0.4f}'.format})
 class Localization():
     def __init__(self):
         rospy.on_shutdown(self.cleanup)
-        rate = rospy.Rate(constants.deltat)
+        rate = rospy.Rate(constants.node_freq)
         rospy.Subscriber(
             "wl", Float32, self.wl_listener)
         rospy.Subscriber(
@@ -74,11 +74,11 @@ class Localization():
         """
         
         """ 
-        self.robot_odom.pose.pose.position.x += self.xdot * constants.deltat**-1
-        self.robot_odom.pose.pose.position.y += self.ydot * constants.deltat**-1
+        self.robot_odom.pose.pose.position.x += self.xdot * constants.deltat
+        self.robot_odom.pose.pose.position.y += self.ydot * constants.deltat
         self.robot_odom.pose.pose.position.z = constants.r
 
-        self.theta += self.thetadot * constants.deltat**-1
+        self.theta += self.thetadot * constants.deltat
         self.theta = np.arctan2(np.sin(self.theta), np.cos(self.theta))
         self.robot_odom.pose.pose.orientation = Quaternion(
             *quaternion_from_euler(0, 0, self.theta))

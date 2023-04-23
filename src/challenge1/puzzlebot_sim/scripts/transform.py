@@ -20,7 +20,7 @@ class EqSolver():
             "wr", Float32, queue_size=10)
         rospy.Subscriber(
             "cmd_vel", Twist, self.cmd_listener)
-        rate = rospy.Rate(constants.deltat)
+        rate = rospy.Rate(constants.node_freq)
         self.v = 0.0
         self.w = 0.0
 

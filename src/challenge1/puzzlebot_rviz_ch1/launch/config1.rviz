@@ -87,11 +87,19 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/Odometry
+      Name: Odometry
+      Topic: /odom
+      Icon: "package://rviz/icons/odometry.png"
+      Unreliable: false
+      Value: true
+      Keep: 1
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: world
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:

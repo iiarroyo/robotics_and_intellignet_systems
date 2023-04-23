@@ -7,7 +7,7 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import TransformStamped
 from tf.transformations import quaternion_from_euler
-
+import my_constants as constants
 
 class CoordinateTransform():
     def __init__(self):
@@ -17,7 +17,7 @@ class CoordinateTransform():
             "thetal", Float32, self.left_wheel_angle_listener)
         rospy.Subscriber(
             "thetar", Float32, self.right_wheel_angle_listener)
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(constants.node_freq)
         self.robot_pose = PoseStamped()
         self.left_wheel_angle = 0.0
         self.right_wheel_angle = 0.0
