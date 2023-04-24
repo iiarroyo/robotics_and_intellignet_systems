@@ -4,4 +4,4 @@
 node_freq = 50.0
 deltat = 1.0/node_freq
 L = 0.18
-r = 0.05
+r = 0.065

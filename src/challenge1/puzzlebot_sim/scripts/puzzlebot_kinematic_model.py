@@ -29,7 +29,7 @@ class PuzzlebotKinClass():
 
         ############ ROBOT CONSTANTS ############# 
         self.r = 0.065         # Puzzlebot wheel radius [m] 
-        self.L = 0.19        # Puzzlebot wheel separation [m] 
+        self.L = 0.18        # Puzzlebot wheel separation [m] 
         self.delta_t = constants.deltat # Desired time to update the robot's pose [s] 
 
         ############    VARIABLES   ############## 

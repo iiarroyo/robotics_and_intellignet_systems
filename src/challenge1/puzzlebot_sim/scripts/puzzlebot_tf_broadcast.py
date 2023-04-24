@@ -13,7 +13,8 @@ import my_constants as constants
 
 class PuzzlebotTfClass():  
     def __init__(self):  
-        rospy.Subscriber("odom", Odometry, self.pose_sim_cb) 
+        # rospy.Subscriber("odom", Odometry, self.pose_sim_cb)
+        rospy.Subscriber("pose_sim", PoseStamped, self.pose_sim_cb) 
         rospy.Subscriber("wl", Float32, self.wl_cb)
         rospy.Subscriber("wr", Float32, self.wr_cb)
         self.marker_pub = rospy.Publisher("puzzlebot_marker", Marker, queue_size = 1) 
@@ -46,7 +47,7 @@ class PuzzlebotTfClass():
         self.rot_L = self.rot_L + wl * constants.deltat 
     
     def pose_sim_cb(self, msg):
-        self.robot_pose = self.odom2pose(msg)
+        self.robot_pose = msg
  
     def send_base_link_tf(self, pose_stamped=PoseStamped()): 
         # This receives the robot's pose and broadcast a transformation. 

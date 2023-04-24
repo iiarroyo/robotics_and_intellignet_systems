@@ -20,7 +20,7 @@ class LocalizationClass():
         rospy.Subscriber("wr", Float32, self.wr_cb ) 
         odom = Odometry()
         #Robot constants  
-        r=0.05 #[m] radius of the wheels 
+        r=0.065 #[m] radius of the wheels 
         L=0.18 #[m] distance between wheels 
         #Robot state 
         self.wl = 0.0 #Robot left wheel angular speed 
@@ -61,9 +61,7 @@ class LocalizationClass():
                 # Sigma_pose[2,0] = 0.0  #cov(theta,x) 
                 # Sigma_pose[2,1] = 0.0  #cov(theta,y) 
                 # Sigma_pose[2,2] = 1.0 #cov(thetat,theta)
-                Q = np.array([[0.5, 0.01, 0.01],
-                  [0.01, 0.5, 0.01],
-                  [0.01, 0.01, 0.2]])
+                Q = np.zeros((3, 3))
                 _, Sigma_pose, _ = d.calc_vals(
                     miu=[x, y, theta],
                     E=Sigma_pose,

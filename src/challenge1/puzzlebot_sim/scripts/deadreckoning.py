@@ -12,8 +12,8 @@ class DeadReckoning():
         pass
 
     def calc_vals(self, miu, E, v, w, Q, dt, wr, wl):
-        kr = 0.7
-        kl = 0.7
+        kr = 1.1
+        kl = 1.1
         wheel_cov = np.array([[kr*abs(wr), 0],
                               [0, kl*abs(wl)]])
         nabla_w = (0.5)*constants.r*dt*np.array([[np.cos(miu[2]), np.cos(miu[2])],
