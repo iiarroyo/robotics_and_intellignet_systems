@@ -37,8 +37,9 @@ class LocalizationClass():
         last_time = rospy.get_time() 
         self.received_wl = 0 
         self.received_wr = 0 
-        rate = rospy.Rate(constants.node_freq) 
-        Sigma_pose = np.zeros([3,3]) #Creates the Covariance matrix (3x3) for x, y and theta 
+        rate = rospy.Rate(constants.node_freq)
+        # Creates the Covariance matrix (3x3) for x, y and theta 
+        Sigma_pose = np.zeros([3,3]) 
         d = DeadReckoning()
         while not rospy.is_shutdown(): 
             if self.received_wl and self.received_wr: 
@@ -79,7 +80,7 @@ class LocalizationClass():
                 theta = np.arctan2(np.sin(theta), np.cos(theta)) # Make theta from -pi to pi 
                 #last_time =  current_time 
                 last_time = current_time 
-                odom = self.fill_odom(x, y, theta, Sigma_pose, v, w) 
+                odom = self.fill_odom(x, y, theta, Sigma_pose, v, w)
                 self.odom_pub.publish(odom) 
                 rate.sleep()
 
