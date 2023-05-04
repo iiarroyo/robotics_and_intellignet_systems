@@ -94,14 +94,15 @@ class GoToGoal():
                 ed = np.sqrt(pow(self.x_target - self.robot.x, 2) + pow(self.y_target - self.robot.y, 2))  #At goal
                 tetha_fwc = self.thetaAO - np.pi/2
                 theta_fwcc = self.thetaAO + np.pi/2
-                
+                self.cw = True
+                self.ccw = not self.cw
 
                 if self.current_state == "GoToGoal":
                     if(ed<self.target_position_tolerance):    #At goal
                         self.current_state = 'Stop' 
-                    elif(closest_range<stop_distance and cw):     #CW
-                        self.current_state = "CW Follow"
-                    elif(closest_range<stop_distance and ccw):    #CCW
+                    elif(closest_range<stop_distance and self.cw):     #CW
+                        self.current_state = "AvoidObstacle"
+                    elif(closest_range<stop_distance and self.ccw):    #CCW
                         self.current_state = "CCW Follow"
                     else:
                         print("Current State:","Going to goal")              #Go to goal
@@ -118,8 +119,8 @@ class GoToGoal():
                 elif self.current_state == 'AvoidObstacle':  
                     if(ed<self.target_position_tolerance):     #At goal
                         self.current_state = 'Stop' 
-                    elif(closest_range>ao_distance):           #Near to obstavle                    
-                        self.current_state = 'Blended'
+                    # elif(closest_range>ao_distance):           #Near to obstavle                    
+                    #     self.current_state = 'Blended'
                     else: 
                         print("Current State:","Avoiding obstacle")         #Avoinding
                         v_ao, w_ao = self.compute_ao_control(self.lidar_msg) 
@@ -169,7 +170,7 @@ class GoToGoal():
         ######### YOU CAN ADD YOUR OWN GO-TO-GOAL CODE HERE ######## 
         ################ YOUR CODE HERE ########################### 
         v= min(kv*e_d,0.3)     # Modify this line to change the robot's speed 
-        w= kw*e_theta # Modify this line to change the robot's angular speed 
+        w= kw*self.e_theta # Modify this line to change the robot's angular speed 
         ################ END OF YOUR CODE ########################### 
         return v, w, e_d
  
@@ -202,7 +203,7 @@ class GoToGoal():
                     angle = self.get_angle(i, lidar_msg.angle_min, lidar_msg.angle_increment)  
                     r = lidar_msg.ranges[i]  
                     if not (np.isinf(r)): #Ignore infinite values 
-                        thetaAO=angle-np.pi #flip the vector to point away from the obstacle.  
+                        thetaAO=angle-np.pi/2.0 #flip the vector to point away from the obstacle.  
                         #limit the angle to [-pi,pi] 
                         self.thetaAO = np.arctan2(np.sin(thetaAO),np.cos(thetaAO)) 
                         r_AO = lidar_msg.range_max - r #make vectors closer to the obstacle bigger.  
