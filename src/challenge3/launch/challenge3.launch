@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+ <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+
+  <!-- Fix lidar pose-->
+  <node name="transform_lidar_data" pkg="challenge3" type="transform_lidar_data.py" output="screen"/>  
+  <!-- Go to goal following the wall -->
+  <node name="gtg_following_walls" pkg="challenge3" type="gtg_following_walls.py" output="screen"/>  
+  <!-- Launch rviz and gazebo -->
+  <node name="rviz" pkg="rviz" type="rviz" args=" -d $(find challenge3)/launch/config3.rviz" />
+  <include file="$(find puzzlebot_world)/launch/puzzlebot_obstacle_world.launch"/>
+
+</launch>
+
+  

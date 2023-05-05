@@ -26,7 +26,7 @@ class TransformLidar():
         """
         # new_lidar = LaserScan()
         # new_ranges = [np.inf for _ in len(original_lidar.ranges)]
-        new_ranges = np.roll(original_lidar.ranges, len(original_lidar.ranges)/2)
+        new_ranges = np.roll(original_lidar.ranges, len(original_lidar.ranges)//2)
         new_lidar = original_lidar
         new_lidar.ranges = new_ranges
         new_lidar.header.frame_id = "base_link"
@@ -37,7 +37,6 @@ class TransformLidar():
         self.received_lidar = True
 
     
-
 ############################### MAIN PROGRAM ####################################  
 if __name__ == "__main__":  
     # first thing, init a node! 
