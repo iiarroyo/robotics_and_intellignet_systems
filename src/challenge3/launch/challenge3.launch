@@ -13,7 +13,7 @@
   <!-- Go to goal following the wall -->
   <node name="gtg_following_walls" pkg="challenge3" type="gtg_following_walls.py" output="screen"/>  
   <!-- Launch rviz and gazebo -->
-  <node name="rviz" pkg="rviz" type="rviz" args=" -d $(find challenge3)/launch/config3.rviz" />
+  <node name="rviz" pkg="rviz" type="rviz" args=" -d $(find challenge3)/launch/challenge3_config.rviz" />
   <include file="$(find puzzlebot_world)/launch/puzzlebot_obstacle_world.launch"/>
 
 </launch>
