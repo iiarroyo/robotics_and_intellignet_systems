@@ -11,7 +11,8 @@
   <!-- Fix lidar pose-->
   <node name="transform_lidar_data" pkg="challenge3" type="transform_lidar_data.py" output="screen"/>  
   <!-- Go to goal following the wall -->
-  <node name="gtg_following_walls" pkg="challenge3" type="gtg_following_walls.py" output="screen"/> 
+  <node name="avoid_obstacles" pkg="challenge3" type="avoid_obstacles.py" output="screen"/> 
+  <!-- <node name="gtg_following_walls" pkg="challenge3" type="gtg_following_walls.py" output="screen"/>  -->
   <!-- <node name="robto" pkg="challenge3" type="robot.py" output="screen"/>   -->
   <!-- Launch rviz and gazebo -->
   <node name="rviz" pkg="rviz" type="rviz" args=" -d $(find challenge3)/launch/challenge3_config.rviz" />

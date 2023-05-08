@@ -49,7 +49,7 @@ class GoToGoal():
         #--------------- Variables ---------------# 
         self.x_target = 0.0           # X goal position   [m]
         self.y_target = 0.0           # Y goal position   [m]
-        self.d_goal   = 0.0             # distance to goal [m]
+        self.d_goal   = 0.0           # distance to goal [m]
         self.d_goal_tao = 0.0
         self.wr       = 0.0           # Right wheel speed [rad/s] 
         self.wl       = 0.0           # Left wheel speed  [rad/s] 
@@ -82,7 +82,7 @@ class GoToGoal():
             self.robot.update_state(self.wr, self.wl, constants.deltat)  
             if not self.lidar_received:
                 continue
-            closest_range, closest_angle = self.get_closest_object(self.lidar_msg) 
+            closest_range, _= self.get_closest_object(self.lidar_msg) 
 
             if self.current_state == 'GoToGoal':
                 save_distance_once.has_run = False
@@ -90,10 +90,10 @@ class GoToGoal():
                     self.current_state = 'Follow_Wall'
                 elif self.at_goal():
                     self.current_state = 'Stop'
-                    print("I'm in the goal")
+                    rospy.loginfo("I'm in the goal")
                 else:
                     print("GoToGoal")
-                    v_msg.linear.x, v_msg.angular.z, _ = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
+                    v_msg.linear.x, v_msg.angular.z = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
 
             elif self.current_state == 'Follow_Wall':
                 rospy.loginfo("distance2goal: {} distance@tao: {}".format(self.d_goal, self.d_goal_tao))
@@ -102,7 +102,7 @@ class GoToGoal():
                 #      compute control should return theta and distance, not velocities
                 if self.at_goal():
                     self.current_state = 'Stop'
-                    print("I'm in the goal")
+                    rospy.loginfo("I'm in the goal")
                 #BUG0
                 #TODO: make subtraction a constant
                 elif self.d_goal < self.d_goal_tao - 0.2 and abs(self.thet_gtg - self.theta_ao) < np.pi/2:
@@ -142,6 +142,7 @@ class GoToGoal():
                 v_msg.angular.z = 0 
 
             self.pub_cmd_vel.publish(v_msg)
+            
             rate.sleep()  
 
     def save_distance(self, current_distance):
@@ -167,37 +168,35 @@ class GoToGoal():
         return closest_range, closest_angle 
 
     def compute_gtg_control(self, x_target, y_target, x_robot, y_robot, theta_robot): 
-        '''
+        """
         This function returns the linear and angular speed to reach a given goal 
         This functions receives the goal's position (x_target, y_target) [m] 
         and robot's position (x_robot, y_robot, theta_robot) [m, rad] 
         This functions returns the robot's speed (v, w) [m/s] and [rad/s] 
-        '''
-        kmax = 0.8
-        alpha = 0.9
-        kw = 0.6
-        kv = 0.15
-
-        et = np.arctan2(self.y_target-self.robot.y, self.x_target-self.robot.x) - self.robot.theta
-        ed = np.sqrt((self.x_target-self.robot.x)**2 + (self.y_target-self.robot.y)**2)
-        self.d_goal = ed
-        self.thet_gtg = et
-
-        if et >= 0.1 or -0.1 >= et:
-                w = kw * et #w = kw*et
-                v = 0
-        else:
-            v = kv * ed  #v = kv*ed
-            w = kw * et
-            if v > 0.3:
-                v = 0.3
-
-        return v, w, et
-         
+        """
+        # Compute errors
+        ed           = np.sqrt((x_target-x_robot)**2+(y_target-y_robot)**2) 
+        theta_target = np.arctan2(y_target-y_robot,x_target-x_robot) 
+        e_theta      = theta_target-theta_robot 
+        e_theta      = np.arctan2(np.sin(e_theta), np.cos(e_theta)) 
+ 
+        #Compute the robot's angular speed 
+        kw = constants.kwmax*(1-np.exp(-constants.a2*e_theta**2))/abs(e_theta) 
+        w = kw*e_theta 
+        
+        #we first turn to the goal 
+        if abs(e_theta) > np.pi/8: 
+            v=0 #linear speed  
+        else: 
+            # Make the linear speed gain proportional to the distance to the target position 
+            kv=constants.kvmax*(1-np.exp(-constants.av*ed**2))/abs(ed) 
+            v=kv*ed 
+        return v,w 
+             
     def compute_ao_control(self,lidar_msg):
         ## This function computes the linear and angular speeds for the robot  
         # given the distance and the angle theta as error references  
-        kvmax = 0.3 #linear speed maximum gain  
+        constants.kvmax = 0.3 #linear speed maximum gain  
         a = 1.0 #Constant to adjust the exponential's growth rate  
         kw = 0.35  # Angular speed gain  
         v_desired=0.3  
@@ -242,7 +241,7 @@ class GoToGoal():
                 dT=np.sqrt(xT**2+yT**2)  
                 #BUG: at some point, this is not satisfied
                 if not dT == 0:  
-                    kv=kvmax*(1-np.exp(-a*dT**2))/(dT) #Constant to change the speed  
+                    kv=constants.kvmax*(1-np.exp(-a*dT**2))/(dT) #Constant to change the speed  
                     v = kv * dT #linear speed  
 
                 w = kw * thetaT #angular speed  
