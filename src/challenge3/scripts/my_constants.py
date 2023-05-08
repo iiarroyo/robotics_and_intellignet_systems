@@ -3,7 +3,7 @@
 # put constants, like sampling time, here
 node_freq = 50.0
 deltat = 1.0/node_freq
-L = 0.18
+L = 0.17
 r = 0.065
 
 

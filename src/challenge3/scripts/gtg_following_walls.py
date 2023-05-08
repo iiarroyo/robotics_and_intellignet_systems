@@ -31,6 +31,14 @@ class Robot():
         self.x=self.x+vx*delta_t
         self.y=self.y+vy*delta_t
 
+def run_once(f):
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            return f(*args, **kwargs)
+    wrapper.has_run = False
+    return wrapper
+
 class GoToGoal():
     '''
     This class will make the puzzlebot move to a given goal 
@@ -41,6 +49,8 @@ class GoToGoal():
         #--------------- Variables ---------------# 
         self.x_target = 0.0           # X goal position   [m]
         self.y_target = 0.0           # Y goal position   [m]
+        self.d_goal   = 0.0             # distance to goal [m]
+        self.d_goal_tao = 0.0
         self.wr       = 0.0           # Right wheel speed [rad/s] 
         self.wl       = 0.0           # Left wheel speed  [rad/s] 
         self.theta_ao = 0.0           # Avoid obstacle angle [rad]
@@ -64,58 +74,79 @@ class GoToGoal():
         rate = rospy.Rate(constants.node_freq) #freq Hz  
         print("Node initialized") 
 
-        #--------------- Main loop ---------------#  
+        #--------------- Main loop ---------------#
+        save_distance_once = run_once(self.save_distance)
+        save_distance_once.has_run = False
         while not rospy.is_shutdown():  
-            
             #Update odometry
             self.robot.update_state(self.wr, self.wl, constants.deltat)  
-            
-            if self.lidar_received: 
-                closest_range, closest_angle = self.get_closest_object(self.lidar_msg) 
+            if not self.lidar_received:
+                continue
+            closest_range, closest_angle = self.get_closest_object(self.lidar_msg) 
 
-                if self.current_state == 'GoToGoal':
-                    if closest_range < constants.FW_distance:
-                        self.current_state = 'Follow_Wall'
-                    elif self.at_goal():
-                        self.current_state = 'Stop'
-                        print("I'm in the goal")
-                    else:
-                        print("GoToGoal")
-                        v_msg.linear.x, v_msg.angular.z = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
+            if self.current_state == 'GoToGoal':
+                save_distance_once.has_run = False
+                if closest_range < constants.FW_distance:
+                    self.current_state = 'Follow_Wall'
+                elif self.at_goal():
+                    self.current_state = 'Stop'
+                    print("I'm in the goal")
+                else:
+                    print("GoToGoal")
+                    v_msg.linear.x, v_msg.angular.z, _ = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
 
-                elif self.current_state == 'Follow_Wall':
-                    #TODO: keep track of pose while following wall
-                    v_gtg, w_gtg = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
-                    if self.at_goal():
-                        self.current_state = 'Stop'
-                        print("I'm in the goal")
-                    elif closest_range > constants.FW_distance:
-                        # pass
-                        # self.current_state = 'GoToGoal'
-                        print("wall is far away")
-                    else:
-                        rospy.loginfo("Following Wall")
-                        v_ao, w_ao = self.compute_ao_control(self.lidar_msg)
-                        pi = np.pi
-                        #TODO: make this not hard coded
-                        kw = 1.5
-                        theta_fw = pi/2 + self.theta_ao
-                        theta_fw = np.arctan2(np.sin(theta_fw), np.cos(theta_fw))
-                        th_fwc = -np.pi/2 + self.theta_ao
-                        if (abs(th_fwc-self.thet_gtg) <= np.pi/2):
-                            pi = pi*-1
-                        print("Theta FW: ",theta_fw)
-                        #TODO: make this NOT hard coded
-                        v_msg.linear.x = 0.11
-                        v_msg.angular.z = kw*theta_fw
+            elif self.current_state == 'Follow_Wall':
+                rospy.loginfo("distance2goal: {} distance@tao: {}".format(self.d_goal, self.d_goal_tao))
+                save_distance_once(self.d_goal)
+                #TODO: keep track of pose while following wall
+                #      compute control should return theta and distance, not velocities
+                if self.at_goal():
+                    self.current_state = 'Stop'
+                    print("I'm in the goal")
+                #BUG0
+                #TODO: make subtraction a constant
+                elif self.d_goal < self.d_goal_tao - 0.2 and abs(self.thet_gtg - self.theta_ao) < np.pi/2:
+                    rospy.loginfo("CLEAR SHOT")
+                    self.current_state = 'GoToGoal'
+                #BUG2
+                elif False and self.d_goal < self.d_goal_tao - 0.2 and abs(self.thet_gtg - self.theta_ao) < np.pi/2:
+                    rospy.loginfo("CLEAR SHOT")
+                    self.current_state = 'GoToGoal'
 
-                elif self.current_state == 'Stop':
-                    print("Stop") 
-                    v_msg.linear.x = 0 
-                    v_msg.angular.z = 0 
+                elif closest_range > constants.FW_distance:
+
+                    # pass
+                    # self.current_state = 'GoToGoal'
+                    print("wall is far away")
+                else:
+                    rospy.loginfo("Following Wall")
+                    v_gtg, w_gtg, _ = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta)
+                    v_ao, w_ao = self.compute_ao_control(self.lidar_msg)
+                    pi = np.pi
+                    #TODO: make this not hard coded
+                    kw = 1.5
+                    theta_fw = pi/2 + self.theta_ao
+                    theta_fw = np.arctan2(np.sin(theta_fw), np.cos(theta_fw))
+                    th_fwc = -np.pi/2 + self.theta_ao
+                    if (abs(th_fwc-self.thet_gtg) <= np.pi/2):
+                        pi = pi*-1
+                    # print("Theta FW: ",theta_fw)
+                    #TODO: make this NOT hard coded
+                    v_msg.linear.x = 0.11
+                    v_msg.angular.z = kw*theta_fw
+
+            elif self.current_state == 'Stop':
+                save_distance_once.has_run = False
+                print("Stop") 
+                v_msg.linear.x = 0 
+                v_msg.angular.z = 0 
 
             self.pub_cmd_vel.publish(v_msg)
             rate.sleep()  
+
+    def save_distance(self, current_distance):
+        rospy.loginfo("saved distance {}".format(current_distance))
+        self.d_goal_tao = current_distance
 
     def at_goal(self): 
         '''
@@ -149,6 +180,7 @@ class GoToGoal():
 
         et = np.arctan2(self.y_target-self.robot.y, self.x_target-self.robot.x) - self.robot.theta
         ed = np.sqrt((self.x_target-self.robot.x)**2 + (self.y_target-self.robot.y)**2)
+        self.d_goal = ed
         self.thet_gtg = et
 
         if et >= 0.1 or -0.1 >= et:
@@ -160,7 +192,7 @@ class GoToGoal():
             if v > 0.3:
                 v = 0.3
 
-        return v, w 
+        return v, w, et
          
     def compute_ao_control(self,lidar_msg):
         ## This function computes the linear and angular speeds for the robot  
@@ -206,9 +238,9 @@ class GoToGoal():
                 min_range = min(lidar_msg.ranges)
                 idx = idx = lidar_msg.ranges.index(min_range)
                 self.theta_ao = lidar_msg.angle_min + idx * lidar_msg.angle_increment
-                rospy.loginfo("theta_ao: {}".format(self.theta_ao))
+                # rospy.loginfo("theta_ao: {}".format(self.theta_ao))
                 dT=np.sqrt(xT**2+yT**2)  
-
+                #BUG: at some point, this is not satisfied
                 if not dT == 0:  
                     kv=kvmax*(1-np.exp(-a*dT**2))/(dT) #Constant to change the speed  
                     v = kv * dT #linear speed  
