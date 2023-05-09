@@ -43,12 +43,18 @@ class GoToGoal():
         self.y_target   = 0.0  # Y position of the goal 
         self.d_goal     = 0.0  # Distance to goal at start [m]
         self.d_goal_tao = 0.0  # Distance to goal at tao [m]
+        self.d_line     = 0.0
         self.wr         = 0.0  # Right wheel speed [rad/s] 
         self.wl         = 0.0  # Left wheel speed [rad/s]         
         v_msg=Twist()          # Robot's desired speed  
         self.robot=Robot()     # Robot object instance
         self.lidar_received = False # Indicate if the laser scan has been received 
+        self.goal_received = False   # Indicate if the laser scan has been received 
         self.current_state = 'Stop' # Robot's current state 
+        bug0 = False
+        bug2 = not(bug0)
+        B = -1
+        A = 0
 
         #--------------- Publishers ---------------#  
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)  
@@ -71,9 +77,17 @@ class GoToGoal():
                 closest_range, closest_angle = self.get_closest_object(self.lidar_msg) #get the closest object range and angle 
                 thetaAO = self.get_theta_ao(closest_angle) 
                 thetaGTG =self.get_theta_gtg(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
+                
                 self.d_goal = np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) 
+                rospy.loginfo("Dist. to goal: {}".format(self.d_goal))
+                
+                if self.goal_received: 
+                    self.goal_received = False
+                    A = 1 if self.x_target == 0 else self.y_target/self.x_target
 
-                rospy.loginfo("Distance to goal: {}".format(self.d_goal))
+                self.d_line = abs(A*self.robot.x + B*self.robot.y)/(np.sqrt(A**2+B**2))
+                if bug2:
+                    rospy.loginfo("Dist. to line: {}".format(self.d_line))
 
                 if self.at_goal():  
                     rospy.loginfo("Goal reached") 
@@ -86,16 +100,19 @@ class GoToGoal():
                         # Implement the following walls behavior 
                         rospy.loginfo("Change to following walls") 
                         self.d_goal_tao = self.d_goal
+                        rospy.loginfo("Distance to goal at tao: {}".format(self.d_goal_tao))
                         self.current_state = "Clockwise"                    
                     else: 
-                        # rospy.loginfo("Moving to the Goal") 
+                        rospy.loginfo("Moving to the Goal\n\n\n") 
                         v_gtg, w_gtg = self.compute_gtg_control(self.x_target, self.y_target, self.robot.x, self.robot.y, self.robot.theta) 
                         v_msg.linear.x = v_gtg 
                         v_msg.angular.z = w_gtg 
  
                 elif self.current_state == 'Clockwise': 
-                    rospy.loginfo("Distance to goal at tao: {}".format(self.d_goal_tao))
-                    if self.d_goal < self.d_goal_tao - constants.threshold and abs(thetaAO - thetaGTG) < np.pi/2:
+                    if bug0 and (self.d_goal < self.d_goal_tao - constants.threshold and abs(thetaAO - thetaGTG) < np.pi/2):
+                        self.current_state = 'GoToGoal' 
+                        rospy.loginfo("Change to go to goal") 
+                    elif bug2  and (self.d_goal < self.d_goal_tao - constants.threshold) and self.d_line < 0.25:
                         self.current_state = 'GoToGoal' 
                         rospy.loginfo("Change to go to goal") 
                     else: 
@@ -229,7 +246,8 @@ class GoToGoal():
         self.current_state = "GoToGoal" 
         self.x_target = goal.pose.position.x 
         self.y_target = goal.pose.position.y 
-         
+        self.goal_received = True   # Indicate if the laser scan has been received 
+ 
     def cleanup(self):  
         #This function is called just before finishing the node  
         # You can use it to clean things up before leaving  

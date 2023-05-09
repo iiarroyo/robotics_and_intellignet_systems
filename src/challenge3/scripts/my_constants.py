@@ -16,9 +16,9 @@ target_position_tolerance=0.10 #target position tolerance [m]
 threshold = 0.20
 
 v_fw = 0.1
-kw_fw = 1.6
+kw_fw = 1.75
 
-fw_distance = 0.45 # distance to activate the blended controller [m] 
+fw_distance = 0.42 # distance to activate the blended controller [m] 
 ao_distance = 0.20 # distance to activate the obstacle avoidance [m] 
 stop_distance = 0.15 # distance to stop the robot [m] 
 eps=0.15 #Fat guard epsilon 
