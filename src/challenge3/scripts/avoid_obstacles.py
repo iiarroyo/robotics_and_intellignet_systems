@@ -51,7 +51,7 @@ class GoToGoal():
         self.lidar_received = False # Indicate if the laser scan has been received 
         self.goal_received = False   # Indicate if the laser scan has been received 
         self.current_state = 'Stop' # Robot's current state 
-        bug0 = False
+        bug0 = True
         bug2 = not(bug0)
         B = -1
         A = 0
@@ -80,10 +80,13 @@ class GoToGoal():
                 
                 self.d_goal = np.sqrt((self.x_target-self.robot.x)**2+(self.y_target-self.robot.y)**2) 
                 rospy.loginfo("Dist. to goal: {}".format(self.d_goal))
+                rospy.loginfo("Dist. at tao: {}".format(self.d_goal_tao))
+
                 
                 if self.goal_received: 
                     self.goal_received = False
-                    A = 1 if self.x_target == 0 else self.y_target/self.x_target
+                    if self.x_target == 0.0: self.x_target = 1e-6
+                    A = self.y_target/self.x_target
 
                 self.d_line = abs(A*self.robot.x + B*self.robot.y)/(np.sqrt(A**2+B**2))
                 if bug2:
@@ -112,7 +115,7 @@ class GoToGoal():
                     if bug0 and (self.d_goal < self.d_goal_tao - constants.threshold and abs(thetaAO - thetaGTG) < np.pi/2):
                         self.current_state = 'GoToGoal' 
                         rospy.loginfo("Change to go to goal") 
-                    elif bug2  and (self.d_goal < self.d_goal_tao - constants.threshold) and self.d_line < 0.25:
+                    elif bug2  and (self.d_goal <= self.d_goal_tao - constants.threshold) and self.d_line < 0.25:
                         self.current_state = 'GoToGoal' 
                         rospy.loginfo("Change to go to goal") 
                     else: 
@@ -126,7 +129,8 @@ class GoToGoal():
                     v_msg.linear.x = 0 
                     v_msg.angular.z = 0 
                          
-            self.pub_cmd_vel.publish(v_msg)  
+            self.pub_cmd_vel.publish(v_msg) 
+            rospy.loginfo("\n")
             rate.sleep()  
      
     def at_goal(self): 
